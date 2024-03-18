@@ -288,7 +288,7 @@ def download_file():
 
 
 @app.route('/api/get', methods=['GET'])
-def download_file():
+def get_file():
 
 
     if "filename" not in request.form :
