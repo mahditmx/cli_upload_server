@@ -16,7 +16,23 @@ THIS_FOLDER = Path(__file__).parent.resolve()
 json_usr = Zjson()
 json_usr.connectFile(THIS_FOLDER / "usr/usr.json")
 
+json_index = Zjson()
+json_index.connectFile(THIS_FOLDER / "config/index.json")
+
+
+
 FILES_DIRECTORY = THIS_FOLDER / 'files'
+
+
+json_usr = Zjson()
+json_usr.connectFile("usr/usr.json")
+
+json_index = Zjson()
+json_index.connectFile("config/index.json")
+
+
+
+FILES_DIRECTORY = 'files'
 
 
 app = Flask(__name__)
@@ -131,7 +147,24 @@ def file_info():
         except:
 
             return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
+    if mode == 'get':
 
+        try:
+            index_data = json_index.read()
+            if file_name not in index_data:
+                return js({'success' : True ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
+
+
+            if index_data[file_name]['public'] == False:
+                return js({'success' : False ,'message': '403 this file is not public' , "data" : {"file_path" : file_name}}), 404
+            auth = index_data[file_name]['auth']
+            file_path  = os.path.join(FILES_DIRECTORY,auth,index_data[file_name]['path'])
+            file_size = get_file_size(file_path)
+            lst_modife =  os.path.getmtime(file_path)
+
+            return js({'success' : True ,'message': '200 Ok' , "data" : {"info" : (index_data[file_name]['path'],file_size,lst_modife,auth) , "exsist" : True }}), 200
+        except:
+            return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
 
 
 
@@ -203,31 +236,33 @@ def upload_file():
 
 
 
-@app.route('/api/download', methods=['GET'])
+@app.route('/api/get', methods=['GET'])
 def download_file():
 
-    if "username" not in request.form :
-        return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"username was not send"}}), 400
-    if "password" not in request.form :
-        return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"password was not send"}}), 400
+
     if "filename" not in request.form :
         return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"filename was not send"}}), 400
 
-    username = request.form.get('username')
-    password = request.form.get('password')
+
     filename = request.form.get('filename')
 
-    lg = check_auth(username,password)
-    if lg != True:
-        return lg
+
+    index_data = json_index.read()
+    if filename not in index_data:
+        return js({'success' : False ,'message': '404 File not exsist' , "data" : {"file_path" : filename}}), 404
+
+
+    if index_data[filename]['public'] == False:
+        return js({'success' : False ,'message': '403 this file is not public' , "data" : {"file_path" : filename}}), 404
+    auth = index_data[filename]['auth']
+    file_name = index_data[filename]['path']
 
 
 
-
-    file_path = os.path.join(FILES_DIRECTORY,username, filename)
+    file_path = os.path.join(FILES_DIRECTORY,auth, file_name)
 
     if not os.path.exists(file_path):
-        return js({'success' : False ,'message': '404 File not exsist' , "data" : {"file_path" : file_path}}), 404
+        return js({'success' : False ,'message': '404 File not exsist' , "data" : {"file_path" : file_path , 'auth':auth}}), 404
 
 
     return send_file(file_path, as_attachment=True)
