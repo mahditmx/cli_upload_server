@@ -77,7 +77,7 @@ def main():
     return redirect('/downloads')
 @app.route('/downloads')
 def downloads():
-    return "<h1>Download .deb</h1>Cloud pype - cpype <br><br> <a href='/download/deb/0.0.1' >cpype-0.0.1.deb</a> for linux - last vertion"
+    return "<h1>Download .deb</h1>Cloud pype - cpype <br><br> <a href='/download/deb/0.0.1' >cpype-0.0.1.deb</a> for linux - last vertion <br><br><span>* required python3 for work</span>"
 
 @app.route('/download/deb/<ver>')
 def download_deb(ver):
