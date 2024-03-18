@@ -24,15 +24,15 @@ json_index.connectFile(THIS_FOLDER / "config/index.json")
 FILES_DIRECTORY = THIS_FOLDER / 'files'
 
 
-json_usr = Zjson()
-json_usr.connectFile("usr/usr.json")
+# json_usr = Zjson()
+# json_usr.connectFile("usr/usr.json")
 
-json_index = Zjson()
-json_index.connectFile("config/index.json")
+# json_index = Zjson()
+# json_index.connectFile("config/index.json")
 
 
 
-FILES_DIRECTORY = 'files'
+# FILES_DIRECTORY = 'files'
 
 
 app = Flask(__name__)
