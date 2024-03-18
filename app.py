@@ -25,8 +25,22 @@ app.config.update(
     DEBUG=True,
     HOST='0.0.0.0'
 )
-
-
+def list_files(directory):
+    files = []
+    for filename in os.listdir(directory):
+        path = os.path.join(directory, filename)
+        if os.path.isfile(path):
+            files.append(filename)
+    return files
+def get_file_size(file_path):
+    try:
+        # Get the size of the file in bytes
+        size = os.path.getsize(file_path)
+        return size
+    except OSError:
+        # Handle any potential errors, such as the file not existing
+        print("Error: Unable to get file size.")
+        return None
 def check_req(req:list , data):
     for d in req:
         if d not in data:
@@ -65,10 +79,9 @@ def createAccount():
 
 
 
-
 @app.route('/api/login' , methods=['POST'])
 def check_login():
-    """only check login"""
+    """only check auth"""
 
     data = request.json
     req_data = ['username' , 'password']
@@ -85,6 +98,63 @@ def check_login():
 
 
     return js({'success' : True ,'message': '200 Ok' , "data" : {"username" : username}}), 200
+
+
+
+@app.route('/api/info' , methods=['POST'])
+def file_info():
+    
+
+    data = request.json
+    req_data = ['username' , 'password','file_name','mode']
+    req = check_req(req_data , data)
+    if req != None:
+        return req
+
+    username = data.get('username')
+    password = data.get('password')
+    file_name = data.get('file_name')
+    mode = data.get('mode')
+
+    if mode == "all" : 
+        try:
+            path = os.path.join(FILES_DIRECTORY,username)
+            files = list_files(path)
+            result = []
+            for f in files:
+                file_path  = os.path.join(FILES_DIRECTORY,username,f)
+                file_size = get_file_size(file_path)
+                lst_modife =  os.path.getmtime(file_path)
+                result.append((f,file_size,lst_modife))
+
+            return js({'success' : True ,'message': '200 Ok' , "data" : {"ls" : result}}), 200
+        except:
+
+            return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
+
+
+
+
+    lg = check_auth(username,password)
+    if lg != True:
+        return lg
+    
+    path = os.path.join(FILES_DIRECTORY,username, secure_filename(file_name))
+
+
+    if os.path.exists(path) == False:
+        return js({'success' : True ,'message': '200 Ok' , "data" : {"exsist" : False , "size" : None}}), 200
+
+
+    file_size = get_file_size(path)
+
+    
+
+
+
+    return js({'success' : True ,'message': '200 Ok' , "data" : {"exsist" : True , "size" : file_size}}), 200
+
+
 
 
 @app.route('/api/upload', methods=['POST'])
