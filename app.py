@@ -255,6 +255,34 @@ def upload_file():
 
 
 
+@app.route('/api/download', methods=['GET'])
+def download_file():
+
+    if "username" not in request.form :
+        return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"username was not send"}}), 400
+    if "password" not in request.form :
+        return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"password was not send"}}), 400
+    if "filename" not in request.form :
+        return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"filename was not send"}}), 400
+
+    username = request.form.get('username')
+    password = request.form.get('password')
+    filename = request.form.get('filename')
+
+    lg = check_auth(username,password)
+    if lg != True:
+        return lg
+
+
+
+
+    file_path = os.path.join(FILES_DIRECTORY,username, filename)
+
+    if not os.path.exists(file_path):
+        return js({'success' : False ,'message': '404 File not exsist' , "data" : {"file_path" : file_path}}), 404
+
+
+    return send_file(file_path, as_attachment=True)
 
 
 
