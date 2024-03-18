@@ -4,10 +4,19 @@ import time , os
 from werkzeug.utils import secure_filename
 
 
-json_usr = Zjson()
-json_usr.connectFile("usr/usr.json")
+from pathlib import Path
+THIS_FOLDER = Path(__file__).parent.resolve()
 
-FILES_DIRECTORY = 'files'
+
+
+
+
+
+
+json_usr = Zjson()
+json_usr.connectFile(THIS_FOLDER / "usr/usr.json")
+
+FILES_DIRECTORY = THIS_FOLDER / 'files'
 
 
 app = Flask(__name__)
@@ -69,7 +78,7 @@ def check_login():
 
     username = data.get('username')
     password = data.get('password')
-    
+
     lg = check_auth(username,password)
     if lg != True:
         return lg
@@ -93,26 +102,26 @@ def upload_file():
     lg = check_auth(username,password)
     if lg != True:
         return lg
-    
+
 
     # ---------
 
 
     if 'file' not in request.files:
         return js({'success' : False , 'message': 'No file part' , "data" : {}}) , 404
-    
+
 
 
     file = request.files['file']
-    
+
     if file.filename == '':
         return js({'success' : False , 'message': 'No selected file' , "data": {}}) , 404
-    
-    path = os.path.join(FILES_DIRECTORY+"/"+username, secure_filename(file.filename))
+
+    path = os.path.join(FILES_DIRECTORY,username, secure_filename(file.filename))
     file.save(path)
 
     if os.path.exists(path) == False:
-        
+
         return js({'success' : False ,'message': '500 Internal Server Error' , "data" : {"filename" : secure_filename(file.filename)}}), 500
 
 
@@ -133,7 +142,7 @@ def download_file():
         return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"password was not send"}}), 400
     if "filename" not in request.form :
         return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"filename was not send"}}), 400
-    
+
     username = request.form.get('username')
     password = request.form.get('password')
     filename = request.form.get('filename')
@@ -145,7 +154,7 @@ def download_file():
 
 
 
-    file_path = os.path.join(FILES_DIRECTORY+"/"+username, filename)
+    file_path = os.path.join(FILES_DIRECTORY,username, filename)
 
     if not os.path.exists(file_path):
         return js({'success' : False ,'message': '404 File not exsist' , "data" : {"file_path" : file_path}}), 404
@@ -163,4 +172,4 @@ def download_file():
 
 
 if __name__ == '__main__':
-    app.run()   
+    app.run()
