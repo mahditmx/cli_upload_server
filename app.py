@@ -1,4 +1,4 @@
-from flask import Flask, session ,request , jsonify as js , send_file
+from flask import Flask, session ,request , jsonify as js , send_file , redirect
 from ZDbyte import Zjson
 import time , os
 from werkzeug.utils import secure_filename
@@ -22,7 +22,7 @@ json_index.connectFile(THIS_FOLDER / "config/index.json")
 
 
 FILES_DIRECTORY = THIS_FOLDER / 'files'
-
+LIB_DIRC = THIS_FOLDER / "lib"
 
 # json_usr = Zjson()
 # json_usr.connectFile("usr/usr.json")
@@ -70,6 +70,29 @@ def check_auth(username,password):
     if usr_data['password'] != password:
         return js({'success' : False ,'message': '401 Forbidden' , "data" : {"username" : username}}), 403
     return True
+
+
+@app.route('/')
+def main():
+    return redirect('/downloads')
+@app.route('/downloads')
+def downloads():
+    return "<h1>Download .deb</h1>Cloud pype - cpype <br><br> <a href='/download/deb/0.0.1' >cpype-0.0.1.deb</a> for linux - last vertion"
+
+@app.route('/download/deb/<ver>')
+def download_deb(ver):
+    # Replace 'path/to/your/file.ext' with the actual path to your file
+    filepath = LIB_DIRC / 'deb' / ver
+    # Change 'filename.ext' to the name you want the downloaded file to have
+    filename = f'cpipe-{ver}.deb'
+    path = os.path.join(filepath ,filename)
+    # return str(path)
+    return send_file(path, as_attachment=True)
+
+
+
+
+
 
 
 @app.route('/api/crAcc' , methods=['POST'])
