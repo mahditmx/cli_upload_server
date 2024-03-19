@@ -100,7 +100,7 @@ def main():
     return redirect('/downloads')
 @app.route('/downloads')
 def downloads():
-    return "<h1>Download .deb</h1>Cloud pype - cpype <br><br> <a href='/download/deb/0.0.1' >cpype-0.0.1.deb</a> for linux - last vertion <br><br><span>* required python3 for work</span>"
+    return "<h1>Download .deb</h1>Cloud pype - cpype <br><br> <a href='/download/deb/0.0.1' >cpype-0.0.1.deb</a> for linux 26MB - last vertion "
 
 @app.route('/download/deb/<ver>')
 def download_deb(ver):
@@ -220,7 +220,7 @@ def file_info():
     
 
     data = request.json
-    req_data = ['username' , 'password','file_name','mode']
+    req_data = ['username','password','file_name','mode']
     req = check_req(req_data , data)
     if req != None:
         return req
@@ -266,6 +266,26 @@ def file_info():
             return js({'success' : True ,'message': '200 Ok' , "data" : {"info" : (index_data[file_name]['path'],file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True }}), 200
         except:
             return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
+
+    if mode == 'hash':
+        try:
+            path = os.path.join(FILES_DIRECTORY,username)
+            files = list_files(path)
+            result = []
+            for f in files:
+                file_path  = os.path.join(FILES_DIRECTORY,username,f)
+                file_hash =  get_file_hash(file_path)
+                if file_hash == file_name: # file_name here mean hash send from client
+                    file_size = get_file_size(file_path)
+                    lst_modife =  os.path.getmtime(file_path)
+                    result.append((f,file_size,lst_modife,file_hash))
+
+            return js({'success' : True ,'message': '200 Ok' , "data" : {"ls" : result}}), 200
+        except:
+
+            return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
+
+
 
 
 
