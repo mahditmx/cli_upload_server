@@ -183,7 +183,8 @@ def file_info():
                 file_path  = os.path.join(FILES_DIRECTORY,username,f)
                 file_size = get_file_size(file_path)
                 lst_modife =  os.path.getmtime(file_path)
-                result.append((f,file_size,lst_modife))
+                file_hash =  get_file_hash(file_path)
+                result.append((f,file_size,lst_modife,file_hash))
 
             return js({'success' : True ,'message': '200 Ok' , "data" : {"ls" : result}}), 200
         except:
