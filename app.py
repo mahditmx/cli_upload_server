@@ -159,6 +159,58 @@ def check_login():
 
 
 
+@app.route('/api/pub' , methods=['POST'])
+def indexing():
+    """only check auth"""
+
+    data = request.json
+    req_data = ['username' , 'password' , "file_name" , "f_name" , "force"]
+    req = check_req(req_data , data)
+    if req != None:
+        return req
+
+    username = data.get('username')
+    password = data.get('password')
+    file_name = data.get('file_name')
+    f_name = data.get('f_name')
+    force = data.get('force')
+
+    lg = check_auth(username,password)
+    if lg != True:
+        return lg
+
+
+
+    
+    file_path  = os.path.join(FILES_DIRECTORY,username,file_name)
+    if os.path.exists(file_path) == False:
+        return js({'success' : False ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
+
+
+    index_data = json_index.read()
+    if f_name in index_data:
+        if index_data[f_name]['auth'] != username:
+            return js({'success' : False ,'message': '403 this file allready exsist and you dont have permition' , "data" : {"username" : username, 'per': False}}), 403
+        elif force == False:
+            return js({'success' : False ,'message': '401 this file allready exsist' , "data" : {"username" : username , 'per': True}}), 401
+
+
+    index = {}
+    index[f_name] = {
+        "auth" : username,
+        "path" : file_name,
+        "public" : True
+    }
+    try:
+        json_index.append(index)
+    except:
+        return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
+
+
+
+    return js({'success' : True ,'message': f'{file_name} publish as {f_name}' , "data" : {"username" : username}}), 200
+
+
 @app.route('/api/info' , methods=['POST'])
 def file_info():
     
