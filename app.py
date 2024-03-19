@@ -2,6 +2,7 @@ from flask import Flask, session ,request , jsonify as js , send_file , redirect
 from ZDbyte import Zjson
 import time , os
 from werkzeug.utils import secure_filename
+import hashlib
 
 
 from pathlib import Path
@@ -70,6 +71,24 @@ def check_auth(username,password):
     if usr_data['password'] != password:
         return js({'success' : False ,'message': '401 Forbidden' , "data" : {"username" : username}}), 403
     return True
+def get_file_hash(file_path):
+    # Initialize the hash object
+    file_hash = hashlib.sha256()
+
+    # Open the file in binary mode and calculate the hash
+    with open(file_path, "rb") as f:
+        while True:
+            # Read the file in chunks
+            chunk = f.read(4096)
+            if not chunk:
+                break
+            # Update the hash object with each chunk of data
+            file_hash.update(chunk)
+
+    # Retrieve the hexadecimal digest of the hash
+    file_hash_hexdigest = file_hash.hexdigest()
+    
+    return file_hash_hexdigest
 
 
 @app.route('/')
@@ -184,8 +203,10 @@ def file_info():
             file_path  = os.path.join(FILES_DIRECTORY,auth,index_data[file_name]['path'])
             file_size = get_file_size(file_path)
             lst_modife =  os.path.getmtime(file_path)
+            file_hash = get_file_hash(file_path)
 
-            return js({'success' : True ,'message': '200 Ok' , "data" : {"info" : (index_data[file_name]['path'],file_size,lst_modife,auth) , "exsist" : True }}), 200
+
+            return js({'success' : True ,'message': '200 Ok' , "data" : {"info" : (index_data[file_name]['path'],file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True }}), 200
         except:
             return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
 
@@ -206,9 +227,9 @@ def file_info():
 
     
 
+    file_hash = get_file_hash(path)
 
-
-    return js({'success' : True ,'message': '200 Ok' , "data" : {"exsist" : True , "size" : file_size}}), 200
+    return js({'success' : True ,'message': '200 Ok' , "data" : {"exsist" : True , "size" : file_size , 'hash' : file_hash}}), 200
 
 
 
@@ -240,6 +261,17 @@ def upload_file():
 
     file = request.files['file']
 
+    file_hash = hashlib.sha256()
+    while True:
+        chunk = file.read(4096)  # Read in 4KB chunks
+        if not chunk:
+            break
+        file_hash.update(chunk)
+
+    file_hash_hexdigest = file_hash.hexdigest()
+
+
+
     if file.filename == '':
         return js({'success' : False , 'message': 'No selected file' , "data": {}}) , 404
 
@@ -251,7 +283,7 @@ def upload_file():
         return js({'success' : False ,'message': '500 Internal Server Error' , "data" : {"filename" : secure_filename(file.filename)}}), 500
 
 
-    return js({'success' : True ,'message': 'File uploaded successfully' , "data" : {"filename" : secure_filename(file.filename)}}) , 200
+    return js({'success' : True ,'message': 'File uploaded successfully' , "data" : {"filename" : secure_filename(file.filename) , 'hash' : file_hash_hexdigest }}) , 200
 
 
 
