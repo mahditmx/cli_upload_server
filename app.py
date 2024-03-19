@@ -261,14 +261,14 @@ def upload_file():
 
     file = request.files['file']
 
-    file_hash = hashlib.sha256()
-    while True:
-        chunk = file.read(4096)  # Read in 4KB chunks
-        if not chunk:
-            break
-        file_hash.update(chunk)
+    # file_hash = hashlib.sha256()
+    # while True:
+    #     chunk = file.read(4096)  # Read in 4KB chunks
+    #     if not chunk:
+    #         break
+    #     file_hash.update(chunk)
 
-    file_hash_hexdigest = file_hash.hexdigest()
+    # file_hash_hexdigest = file_hash.hexdigest()
 
 
 
@@ -278,6 +278,11 @@ def upload_file():
     path = os.path.join(FILES_DIRECTORY,username, secure_filename(file.filename))
     file.save(path)
 
+
+    # if get_file_hash(path) != file_hash_hexdigest:
+    #     return js({'success' : False ,'message': 'Saving file on server problem' , "data" : {"filename" : secure_filename(file.filename)}}), 500
+
+    file_hash_hexdigest = get_file_hash(path)
     if os.path.exists(path) == False:
 
         return js({'success' : False ,'message': '500 Internal Server Error' , "data" : {"filename" : secure_filename(file.filename)}}), 500
