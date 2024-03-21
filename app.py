@@ -2,7 +2,8 @@ import hashlib
 import os
 from pathlib import Path
 import time
-
+import secrets
+import string
 from ZDbyte import Zjson
 from flask import Flask, jsonify as js, redirect, request, send_file, session
 from werkzeug.utils import secure_filename
@@ -23,7 +24,6 @@ json_usr.connectFile(THIS_FOLDER / "usr/usr.json")
 
 json_index = Zjson()
 json_index.connectFile(THIS_FOLDER / "config/index.json")
-
 
 
 FILES_DIRECTORY = THIS_FOLDER / 'files'
@@ -67,14 +67,28 @@ def check_req(req:list , data):
         if d not in data:
             return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"{d} was not send"}}), 400
 
-def check_auth(username,password):
-    if json_usr.exsist(username) == False:
-        return js({'success' : False ,'message': '404 This account not exsist' , "data" : {"username" : username}}), 404
+def check_auth(username,password=None,token=None):
 
-    usr_data = json_usr.read()[username]
-    if usr_data['password'] != password:
-        return js({'success' : False ,'message': '401 Forbidden' , "data" : {"username" : username}}), 403
-    return True
+    if token == None:
+        if json_usr.exsist(username) == False:
+            return js({'success' : False ,'message': '404 This account not exsist' , "data" : {"username" : username}}), 404
+
+        usr_data = json_usr.read()[username]
+        if usr_data['password'] != password:
+            return js({'success' : False ,'message': '401 Forbidden' , "data" : {"username" : username}}), 403
+        return True
+    if password == None and token != None:
+        if json_usr.exsist(username) == False:
+            return js({'success' : False ,'message': '404 This account not exsist' , "data" : {"username" : username}}), 404
+
+        usr_data = json_usr.read()[username]
+        usr_token = usr_data['token'][0]
+        if usr_token != token:
+            return js({'success' : False ,'message': f'401 Forbidden {token}' , "data" : {"username" : username}}), 403
+        return True
+
+
+
 def get_file_hash(file_path):
     # Initialize the hash object
     file_hash = hashlib.sha256()
@@ -93,7 +107,10 @@ def get_file_hash(file_path):
     file_hash_hexdigest = file_hash.hexdigest()
     
     return file_hash_hexdigest
-
+def generate_token(length=24):
+    """Generate a random token."""
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 @app.route('/')
 def main():
@@ -131,13 +148,16 @@ def createAccount():
     if json_usr.exsist(username) == True:
         return js({'success' : False ,'message': '409 This username allready exsist' , "data" : {"username" : username}}), 409
 
-    json_usr.append({username : {"password" : password , "time" : time.time() , "admin" : False}})
+    usr_token = generate_token(length=32)
+    usr_token_Expiration = time.time() + 7892000 # ~ 3 month
+
+    json_usr.append({username : {"password" : password , "time" : time.time() , "admin" : False , 'token' : [usr_token , usr_token_Expiration]}})
     if json_usr.exsist(username) == False:
         return js({'success' : False ,'message': '500 Internal Server Error' , "data" : {"username" : username}}), 500
 
     os.mkdir(f'{FILES_DIRECTORY}/{username}')
 
-    return js({'success' : True ,'message': '201 User registered successfully' , "data" : {"username" : username}}), 201
+    return js({'success' : True ,'message': '201 User registered successfully' , "data" : {"username" : username , 'token' : usr_token}}), 201
 
 
 
@@ -159,7 +179,23 @@ def check_login():
         return lg
 
 
-    return js({'success' : True ,'message': '200 Ok' , "data" : {"username" : username}}), 200
+    usr_info = json_usr.read()
+    if "token" in usr_info[username]:
+        if usr_info[username]['token'][1] <= time.time():
+            usr_token = generate_token(length=32)
+            usr_token_Expiration = time.time() + 7892000 # ~ 3 month
+            json_usr.append({username : {"password" : password , "time" : time.time() , "admin" : False , 'token' : [usr_token , usr_token_Expiration]}})
+            return js({'success' : True ,'message': '200 Ok' , "data" : {"username" : username , "token" : usr_token}}), 200
+        else:
+            return js({'success' : True ,'message': '200 Ok' , "data" : {"username" : username , "token" : usr_info[username]['token'][0]}}), 200
+    else:
+        usr_token = generate_token(length=32)
+        usr_token_Expiration = time.time() + 7892000 # ~ 3 month 
+        json_usr.append({username : {"password" : password , "time" : time.time() , "admin" : False , 'token' : [usr_token , usr_token_Expiration]}})
+
+        return js({'success' : True ,'message': '200 Ok' , "data" : {"username" : username , "token" : usr_token}}), 200
+
+
 
 
 
@@ -168,18 +204,18 @@ def indexing():
     """only check auth"""
 
     data = request.json
-    req_data = ['username' , 'password' , "file_name" , "f_name" , "force"]
+    req_data = ['username' , 'token' , "file_name" , "f_name" , "force"]
     req = check_req(req_data , data)
     if req != None:
         return req
 
     username = data.get('username')
-    password = data.get('password')
+    token = data.get('token')
     file_name = data.get('file_name')
     f_name = data.get('f_name')
     force = data.get('force')
 
-    lg = check_auth(username,password)
+    lg = check_auth(username,token=token)
     if lg != True:
         return lg
 
@@ -220,32 +256,16 @@ def file_info():
     
 
     data = request.json
-    req_data = ['username','password','file_name','mode']
+    req_data = ['username','token','file_name','mode']
     req = check_req(req_data , data)
     if req != None:
         return req
 
     username = data.get('username')
-    password = data.get('password')
+    token = data.get('token')
     file_name = data.get('file_name')
     mode = data.get('mode')
 
-    if mode == "all" : 
-        try:
-            path = os.path.join(FILES_DIRECTORY,username)
-            files = list_files(path)
-            result = []
-            for f in files:
-                file_path  = os.path.join(FILES_DIRECTORY,username,f)
-                file_size = get_file_size(file_path)
-                lst_modife =  os.path.getmtime(file_path)
-                file_hash =  get_file_hash(file_path)
-                result.append((f,file_size,lst_modife,file_hash))
-
-            return js({'success' : True ,'message': '200 Ok' , "data" : {"ls" : result}}), 200
-        except:
-
-            return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
     if mode == 'get':
 
         try:
@@ -265,6 +285,29 @@ def file_info():
 
             return js({'success' : True ,'message': '200 Ok' , "data" : {"info" : (index_data[file_name]['path'],file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True }}), 200
         except:
+            return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
+
+
+    lg = check_auth(username,token=token)
+    if lg != True:
+        return lg
+    
+
+    if mode == "all" : 
+        try:
+            path = os.path.join(FILES_DIRECTORY,username)
+            files = list_files(path)
+            result = []
+            for f in files:
+                file_path  = os.path.join(FILES_DIRECTORY,username,f)
+                file_size = get_file_size(file_path)
+                lst_modife =  os.path.getmtime(file_path)
+                file_hash =  get_file_hash(file_path)
+                result.append((f,file_size,lst_modife,file_hash))
+
+            return js({'success' : True ,'message': '200 Ok' , "data" : {"ls" : result}}), 200
+        except:
+
             return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
 
     if mode == 'hash':
@@ -289,10 +332,6 @@ def file_info():
 
 
 
-    lg = check_auth(username,password)
-    if lg != True:
-        return lg
-    
     path = os.path.join(FILES_DIRECTORY,username, secure_filename(file_name))
 
 
@@ -316,14 +355,14 @@ def upload_file():
 
     if "username" not in request.form :
         return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"username was not send"}}), 400
-    if "password" not in request.form :
-        return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"password was not send"}}), 400
+    if "token" not in request.form :
+        return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"token was not send"}}), 400
 
 
     username = request.form.get('username')
-    password = request.form.get('password')
+    token = request.form.get('token')
 
-    lg = check_auth(username,password)
+    lg = check_auth(username,token=token)
     if lg != True:
         return lg
 
@@ -374,16 +413,16 @@ def download_file():
 
     if "username" not in request.form :
         return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"username was not send"}}), 400
-    if "password" not in request.form :
-        return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"password was not send"}}), 400
+    if "token" not in request.form :
+        return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"token was not send"}}), 400
     if "filename" not in request.form :
         return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"filename was not send"}}), 400
 
     username = request.form.get('username')
-    password = request.form.get('password')
+    token = request.form.get('token')
     filename = request.form.get('filename')
 
-    lg = check_auth(username,password)
+    lg = check_auth(username,token=token)
     if lg != True:
         return lg
 
