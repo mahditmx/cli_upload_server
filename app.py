@@ -210,6 +210,55 @@ def check_login():
 
 
 
+@app.route('/api/rm_file' , methods=['POST'])
+def rm_file():
+    """only check auth"""
+
+    data = request.json
+    req_data = ['username', 'token', 'file_name']
+    req = check_req(req_data , data)
+    if req != None:
+        return req
+
+    username = data.get('username')
+    token = data.get('token')
+    filename = data.get('file_name')
+
+
+    lg = check_auth(username,token=token)
+    if lg != True:
+        return lg
+
+
+    file_path  = os.path.join(FILES_DIRECTORY,username,filename)
+
+    if not os.path.exists(file_path):
+        return js({'success' : False ,'message': '404 File was not exsist' , "data" : {"file_path" : filename }}), 404
+
+
+    os.remove(file_path)
+    if not os.path.exists(file_path):
+        return js({'success' : True ,'message': 'File remove successfully' , "data" : {"file_path" : filename }}), 200
+    
+
+    return js({'success' : False ,'message': '500 Something went wrong' , "data" : {"file_path" : filename }}), 500
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @app.route('/api/pub' , methods=['POST'])
 def indexing():
