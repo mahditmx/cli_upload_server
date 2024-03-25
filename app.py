@@ -7,6 +7,7 @@ import string
 from ZDbyte import Zjson
 from flask import Flask, jsonify as js, redirect, request, send_file, session
 from werkzeug.utils import secure_filename
+import magic
 
 
 
@@ -28,6 +29,7 @@ json_index.connectFile(THIS_FOLDER / "config/index.json")
 
 FILES_DIRECTORY = THIS_FOLDER / 'files'
 LIB_DIRC = THIS_FOLDER / "lib"
+USR_CONF_DIR = THIS_FOLDER / 'usr_config'
 
 # json_usr = Zjson()
 # json_usr.connectFile("usr/usr.json")
@@ -179,6 +181,16 @@ def check_login():
         return lg
 
 
+
+    usr_conf_dir = os.path.join(USR_CONF_DIR,username)
+    usr_conf_zip = os.path.join(USR_CONF_DIR,username,'zip.json')
+
+    if not os.path.exists(usr_conf_dir) : 
+        os.mkdir(usr_conf_dir)
+        with open(usr_conf_zip,'w+') as f :
+            f.write("{}")
+
+
     usr_info = json_usr.read()
     if "token" in usr_info[username]:
         if usr_info[username]['token'][1] <= time.time():
@@ -201,7 +213,6 @@ def check_login():
 
 @app.route('/api/pub' , methods=['POST'])
 def indexing():
-    """only check auth"""
 
     data = request.json
     req_data = ['username' , 'token' , "file_name" , "f_name" , "force"]
@@ -223,7 +234,14 @@ def indexing():
 
     
     file_path  = os.path.join(FILES_DIRECTORY,username,file_name)
-    if os.path.exists(file_path) == False:
+
+    dot_index = file_path.rfind('.')
+    if dot_index != -1:
+        output =  file_path[:dot_index] + '.zip'
+    else:
+        output = file_path + '.zip'
+
+    if not os.path.exists(file_path) and not os.path.exists(output):
         return js({'success' : False ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
 
 
@@ -277,13 +295,58 @@ def file_info():
             if index_data[file_name]['public'] == False:
                 return js({'success' : False ,'message': '403 this file is not public' , "data" : {"file_path" : file_name}}), 404
             auth = index_data[file_name]['auth']
-            file_path  = os.path.join(FILES_DIRECTORY,auth,index_data[file_name]['path'])
+            filename = index_data[file_name]['path']
+
+            dot_index = filename.rfind('.')
+            if dot_index != -1:
+                output =  filename[:dot_index] + '.zip'
+            else:
+                output = filename + '.zip'
+
+
+
+            file_path  = os.path.join(FILES_DIRECTORY,auth,filename)
+            zip_path  = os.path.join(FILES_DIRECTORY,auth,output)
+
+
+
+
+
+
+            usr_conf_dir = os.path.join(USR_CONF_DIR,auth)
+            usr_conf_zip = os.path.join(USR_CONF_DIR,auth,'zip.json')
+
+            json_zip = Zjson()
+            json_zip.connectFile(usr_conf_zip)
+            zip_info = json_zip.read()
+
+
+
+            ziped = False
+            if not os.path.exists(file_path):
+                if os.path.exists(zip_path):
+                    file_path = zip_path
+                    ziped = True
+
+                    if not output in zip_info : 
+                        return js({'success' : True ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
+
+                    file_hash = zip_info[output]['hash']
+
+
+                else:
+                    return js({'success' : True ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
+
+        
             file_size = get_file_size(file_path)
             lst_modife =  os.path.getmtime(file_path)
-            file_hash = get_file_hash(file_path)
+            if not ziped:
+                file_hash = get_file_hash(file_path)
 
 
-            return js({'success' : True ,'message': '200 Ok' , "data" : {"info" : (index_data[file_name]['path'],file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True }}), 200
+
+
+            return js({'success' : True ,'message': '200 Ok' , "data" : {"info" : (filename,file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True , 'ziped' : ziped }}), 200
         except:
             return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
 
@@ -303,7 +366,22 @@ def file_info():
                 file_size = get_file_size(file_path)
                 lst_modife =  os.path.getmtime(file_path)
                 file_hash =  get_file_hash(file_path)
-                result.append((f,file_size,lst_modife,file_hash))
+
+                usr_conf_dir = os.path.join(USR_CONF_DIR,username)
+                usr_conf_zip = os.path.join(USR_CONF_DIR,username,'zip.json')
+
+                json_zip = Zjson()
+                json_zip.connectFile(usr_conf_zip)
+                zip_info = json_zip.read()
+
+
+                oldname = None
+                if f in zip_info:
+                    oldname = f
+                    f = zip_info[oldname]['orgname']
+                    file_hash = zip_info[oldname]['hash']
+
+                result.append((f,file_size,lst_modife,file_hash,oldname))
 
             return js({'success' : True ,'message': '200 Ok' , "data" : {"ls" : result}}), 200
         except:
@@ -323,6 +401,23 @@ def file_info():
                     lst_modife =  os.path.getmtime(file_path)
                     result.append((f,file_size,lst_modife,file_hash))
 
+            usr_conf_zip = os.path.join(USR_CONF_DIR,username,'zip.json')
+            json_zip = Zjson()
+            json_zip.connectFile(usr_conf_zip)
+            zip_info = json_zip.read()
+            for v , k in zip_info.items():
+                f = k['orgname']
+                file_path  = os.path.join(FILES_DIRECTORY,username,v)
+                file_hash = k['hash']
+                oldname = v
+
+                file_size = get_file_size(file_path)
+                lst_modife =  os.path.getmtime(file_path)
+                if k['hash'] == file_name: # file_name here mean hash send from client
+                    result.append((f,file_size,lst_modife,file_hash,oldname))
+
+
+
             return js({'success' : True ,'message': '200 Ok' , "data" : {"ls" : result}}), 200
         except:
 
@@ -331,22 +426,70 @@ def file_info():
 
 
 
+    sec_file_name = secure_filename(file_name)
+    path = os.path.join(FILES_DIRECTORY,username, sec_file_name)
 
-    path = os.path.join(FILES_DIRECTORY,username, secure_filename(file_name))
+
+    dot_index = sec_file_name.rfind('.')
+    if dot_index != -1:
+        output =  sec_file_name[:dot_index] + '.zip'
+    else:
+        output = sec_file_name + '.zip'
+    path_zip = os.path.join(FILES_DIRECTORY,username, output)
 
 
-    if os.path.exists(path) == False:
+    usr_conf_zip = os.path.join(USR_CONF_DIR,username,'zip.json')
+    json_zip = Zjson()
+    json_zip.connectFile(usr_conf_zip)
+    zip_info = json_zip.read()
+
+    if os.path.exists(path_zip):
+
+
+        file_size = get_file_size(path_zip)
+        file_hash = zip_info[output]['hash']
+
+        return js({'success' : True ,'message': '200 Ok' , "data" : {"exsist" : True , "size" : file_size , 'hash' : file_hash , 'ziped' : True}}), 200
+
+
+
+    elif not os.path.exists(path):
+
+
+
+
+        for k , v in zip_info.items():
+            if v['orgname'] == sec_file_name:
+                file_size = get_file_size(path)
+                return js({'success' : True ,'message': '200 Ok' , "data" : {"exsist" : True , "size" : file_size , 'hash' : v['hash'] , 'ziped' : True}}), 200
+            
+        
+
+
+
+
+
+
         return js({'success' : True ,'message': '200 Ok' , "data" : {"exsist" : False , "size" : None}}), 200
 
 
     file_size = get_file_size(path)
-
-    
-
     file_hash = get_file_hash(path)
 
-    return js({'success' : True ,'message': '200 Ok' , "data" : {"exsist" : True , "size" : file_size , 'hash' : file_hash}}), 200
+    return js({'success' : True ,'message': '200 Ok' , "data" : {"exsist" : True , "size" : file_size , 'hash' : file_hash , 'ziped' : False}}), 200
 
+
+
+def check_media_file_content(file):
+    allowed_media_types = {'video/', 'audio/', 'image/'}
+    file_type = magic.Magic(mime=True).from_buffer(file.read(1024))
+    file.seek(0)  # Reset file pointer
+    return any(file_type.startswith(media_type) for media_type in allowed_media_types)
+def check_archive_file_content(file):
+    allowed_archive_types = {'application/zip', 'application/x-rar-compressed', 'application/gzip'}
+    file_type = magic.Magic(mime=True).from_buffer(file.read(1024))
+    file.seek(0)  # Reset file pointer
+    return file_type in allowed_archive_types
 
 
 
@@ -357,10 +500,25 @@ def upload_file():
         return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"username was not send"}}), 400
     if "token" not in request.form :
         return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"token was not send"}}), 400
+    if "zip" not in request.form :
+        return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"zip was not send"}}), 400
+    if "filename" not in request.form :
+        return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"filename was not send"}}), 400
+    if "org-hash" not in request.form :
+        return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"org-hash was not send"}}), 400
 
 
     username = request.form.get('username')
     token = request.form.get('token')
+    zip_ = request.form.get('zip')
+    filename = request.form.get('filename')
+    org_hash = request.form.get('org-hash')
+
+    print('*---*---')
+    print(zip_)
+    print(filename)
+    print(org_hash)
+    print('*---*---')
 
     lg = check_auth(username,token=token)
     if lg != True:
@@ -377,28 +535,42 @@ def upload_file():
 
     file = request.files['file']
 
-    # file_hash = hashlib.sha256()
-    # while True:
-    #     chunk = file.read(4096)  # Read in 4KB chunks
-    #     if not chunk:
-    #         break
-    #     file_hash.update(chunk)
-
-    # file_hash_hexdigest = file_hash.hexdigest()
-
 
 
     if file.filename == '':
         return js({'success' : False , 'message': 'No selected file' , "data": {}}) , 404
 
-    path = os.path.join(FILES_DIRECTORY,username, secure_filename(file.filename))
+
+
+    if not check_media_file_content(file):
+        if not check_archive_file_content(file):
+            return js({'success' : False ,'message': 'File type not allowed - use last offical client', "data": {}}) , 403
+
+
+    file_name = secure_filename(file.filename)
+
+
+    path = os.path.join(FILES_DIRECTORY, username, file_name)
     file.save(path)
 
 
-    # if get_file_hash(path) != file_hash_hexdigest:
-    #     return js({'success' : False ,'message': 'Saving file on server problem' , "data" : {"filename" : secure_filename(file.filename)}}), 500
-
     file_hash_hexdigest = get_file_hash(path)
+
+    if zip_:
+        usr_conf_dir = os.path.join(USR_CONF_DIR,username)
+        usr_conf_zip = os.path.join(USR_CONF_DIR,username,'zip.json')
+
+        if not os.path.exists(usr_conf_dir) : 
+            os.mkdir(usr_conf_dir)
+            with open(usr_conf_zip,'w+') as f :
+                f.write("{}")
+
+
+        json_zip = Zjson()
+        json_zip.connectFile(usr_conf_zip)
+        json_zip.append({file_name : {'orgname' : filename, 'hash' : org_hash}})
+
+
     if os.path.exists(path) == False:
 
         return js({'success' : False ,'message': '500 Internal Server Error' , "data" : {"filename" : secure_filename(file.filename)}}), 500
@@ -431,7 +603,19 @@ def download_file():
 
     file_path = os.path.join(FILES_DIRECTORY,username, filename)
 
-    if not os.path.exists(file_path):
+
+    dot_index = filename.rfind('.')
+    if dot_index != -1:
+        output =  filename[:dot_index] + '.zip'
+    else:
+        output = filename + '.zip'
+    file_path_zip = os.path.join(FILES_DIRECTORY,username, output)
+
+    if os.path.exists(file_path_zip):
+        return send_file(file_path_zip, as_attachment=True)
+
+
+    elif not os.path.exists(file_path):
         return js({'success' : False ,'message': '404 File not exsist' , "data" : {"file_path" : file_path}}), 404
 
 
@@ -461,6 +645,16 @@ def get_file():
     auth = index_data[filename]['auth']
     file_name = index_data[filename]['path']
 
+    dot_index = file_name.rfind('.')
+    if dot_index != -1:
+        output =  file_name[:dot_index] + '.zip'
+    else:
+        output = file_name + '.zip'
+    file_path_zip = os.path.join(FILES_DIRECTORY,auth, output)
+
+
+    if os.path.exists(file_path_zip):
+        return send_file(file_path_zip, as_attachment=True)
 
 
     file_path = os.path.join(FILES_DIRECTORY,auth, file_name)
