@@ -126,7 +126,7 @@ def download_deb(ver):
     # Replace 'path/to/your/file.ext' with the actual path to your file
     filepath = LIB_DIRC / 'deb' / ver
     # Change 'filename.ext' to the name you want the downloaded file to have
-    filename = f'cpipe-{ver}.deb'
+    filename = f'cbase-{ver}.deb'
     path = os.path.join(filepath ,filename)
     # return str(path)
     return send_file(path, as_attachment=True)
