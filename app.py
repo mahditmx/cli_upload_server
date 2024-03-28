@@ -119,7 +119,30 @@ def main():
     return redirect('/downloads')
 @app.route('/downloads')
 def downloads():
-    return "<h1>Download .deb</h1>Cloud database - Cbase <br><br> <a href='/download/deb/0.0.2' >cbase-0.0.2.deb</a> for linux 8.2MB - last vertion "
+    return """<h1>Download .deb</h1>Cloud database - Cbase 
+    <br><br> <a href='/download/deb/0.0.3' >cbase-0.0.3.deb</a> for linux 8.2MB 3ec0df369cfd3ae4258a62a06835d325be8b7f24212ed5de9482f99ccca050ba   - Last version
+    <br> <a href='/download/deb/0.0.2' >cbase-0.0.2.deb</a> for linux 8.2MB 8641ef435e65ab9e862200a959595c2a0e6727c9b479a8cbe56389d39cb2d734
+    
+    
+    <br><br><br>
+    
+    <h2>Get update from <font color="#26A269">cbase</font></h2>
+
+    <pre> <font color="#26A269">$</font> cbase get cbase</pre>
+
+    <br>
+    <h3>output</h3>
+<pre><font color="#A347BA">dev@usr</font> <font color="#12488B">~</font>$ <font color="#26A269">cbase</font> get cbase                                                                                         
+geting <font color="#A347BA">cbase</font> info...
+[<font color="#A2734C">ZIP</font>] File ziped on the server
+<font color="#2AA1B3">cbase-0.0.3.deb</font> hash : 3ec0df369cfd3ae4258a62a06835d325be8b7f24212ed5de9482f99ccca050ba
+	are you shure to download <font color="#2AA1B3">cbase-0.0.3.deb </font><font color="#A347BA">(8.17 MB)</font> published by <font color="#A2734C"><b>cbase</b></font> [Y/n] ? y
+downloading <font color="#A347BA">cbase-0.0.3.deb</font>...
+	 <font color="#12488B">56.44</font><font color="#2AA1B3"> %</font> <font color="#12488B">━━━━━━━━━━━━━━━━━━━━━━━━━━━━</font><font color="#171421">━━━━━━━━━━━━━━━━━━━━━━</font> <font color="#12488B">4.61</font><font color="#2AA1B3">/</font><font color="#A347BA">8.17 MB</font> [<font color="#2AA1B3">Speed</font>: 102.30 KB/s]  </pre>
+
+
+
+    """
 
 @app.route('/download/deb/<ver>')
 def download_deb(ver):
