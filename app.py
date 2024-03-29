@@ -480,6 +480,9 @@ def file_info():
             for v , k in zip_info.items():
                 f = k['orgname']
                 file_path  = os.path.join(FILES_DIRECTORY,username,v)
+
+                if not os.path.exists(file_path) :
+                    continue # TODO: remove file from zip_json
                 file_hash = k['hash']
                 oldname = v
 
