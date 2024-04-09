@@ -8,6 +8,7 @@ from ZDbyte import Zjson
 from flask import Flask, jsonify as js, redirect, request, send_file, session
 from werkzeug.utils import secure_filename
 import magic
+import json
 
 
 
@@ -114,15 +115,90 @@ def generate_token(length=24):
     alphabet = string.ascii_letters + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
+def get_public_file(file_name,mode='return'):
+    try:
+        index_data = json_index.read()
+        if file_name not in index_data:
+            return js({'success' : True ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
+
+
+        if index_data[file_name]['public'] == False:
+            return js({'success' : False ,'message': '403 this file is not public' , "data" : {"file_path" : file_name}}), 404
+        auth = index_data[file_name]['auth']
+        filename = index_data[file_name]['path']
+
+        dot_index = filename.rfind('.')
+        if dot_index != -1:
+            output =  filename[:dot_index] + '.zip'
+        else:
+            output = filename + '.zip'
+
+
+
+        file_path  = os.path.join(FILES_DIRECTORY,auth,filename)
+        zip_path  = os.path.join(FILES_DIRECTORY,auth,output)
+
+
+
+
+
+
+        usr_conf_dir = os.path.join(USR_CONF_DIR,auth)
+        usr_conf_zip = os.path.join(USR_CONF_DIR,auth,'zip.json')
+
+        json_zip = Zjson()
+        json_zip.connectFile(usr_conf_zip)
+        zip_info = json_zip.read()
+
+
+
+        ziped = False
+        if not os.path.exists(file_path):
+            if os.path.exists(zip_path):
+                file_path = zip_path
+                ziped = True
+
+                if not output in zip_info : 
+                    if mode == 'init':
+                        return 404
+                    return js({'success' : True ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
+
+                file_hash = zip_info[output]['hash']
+
+
+            else:
+                if mode == 'init':
+                    return 404
+                return js({'success' : True ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
+
+    
+        file_size = get_file_size(file_path)
+        lst_modife =  os.path.getmtime(file_path)
+        if not ziped:
+            file_hash = get_file_hash(file_path)
+
+
+        if mode == 'init':
+            
+            return {"info" : (filename,file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True , 'ziped' : ziped }
+        return js({'success' : True ,'message': '200 Ok' , "data" : {"info" : (filename,file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True , 'ziped' : ziped }}), 200
+    except:
+        if mode == 'init':
+            return False
+        return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
+
+
+
+
 @app.route('/')
 def main():
     return redirect('/downloads')
 @app.route('/downloads')
 def downloads():
     return """<h1>Download .deb</h1>Cloud database - Cbase 
-    <br><br> <a href='/download/deb/0.0.3' >cbase-0.0.3.deb</a> for linux 8.2MB 3ec0df369cfd3ae4258a62a06835d325be8b7f24212ed5de9482f99ccca050ba   - Last version
+    <br><br> <a href='/download/deb/0.0.4' >cbase-0.0.4.deb</a> for linux 8.2MB e06b4a06ed6d88cbe11b9e1ff94a030f3d099038bda8e3096d599643a38c779e   - Last version
+    <br> <a href='/download/deb/0.0.3' >cbase-0.0.3.deb</a> for linux 8.2MB 3ec0df369cfd3ae4258a62a06835d325be8b7f24212ed5de9482f99ccca050ba
     <br> <a href='/download/deb/0.0.2' >cbase-0.0.2.deb</a> for linux 8.2MB 8641ef435e65ab9e862200a959595c2a0e6727c9b479a8cbe56389d39cb2d734
-    
     
     <br><br><br>
     
@@ -181,6 +257,9 @@ def createAccount():
         return js({'success' : False ,'message': '500 Internal Server Error' , "data" : {"username" : username}}), 500
 
     os.mkdir(f'{FILES_DIRECTORY}/{username}')
+    os.mkdir(f'{USR_CONF_DIR}/{username}')
+    with open(f'{USR_CONF_DIR}/{username}/zip.json','w+') as f:
+        f.write('{}')
 
     return js({'success' : True ,'message': '201 User registered successfully' , "data" : {"username" : username , 'token' : usr_token}}), 201
 
@@ -356,71 +435,48 @@ def file_info():
     file_name = data.get('file_name')
     mode = data.get('mode')
 
-    if mode == 'get':
+    if mode == 'get_ls':
 
-        try:
+        # try:
+            path = os.path.join(FILES_DIRECTORY,username)
             index_data = json_index.read()
-            if file_name not in index_data:
-                return js({'success' : True ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
 
-
-            if index_data[file_name]['public'] == False:
-                return js({'success' : False ,'message': '403 this file is not public' , "data" : {"file_path" : file_name}}), 404
-            auth = index_data[file_name]['auth']
-            filename = index_data[file_name]['path']
-
-            dot_index = filename.rfind('.')
-            if dot_index != -1:
-                output =  filename[:dot_index] + '.zip'
-            else:
-                output = filename + '.zip'
-
-
-
-            file_path  = os.path.join(FILES_DIRECTORY,auth,filename)
-            zip_path  = os.path.join(FILES_DIRECTORY,auth,output)
+            result = {}
+            for pub in index_data:
+                pub_data = get_public_file(pub,mode='init')
+                result[pub] = pub_data
 
 
 
 
 
+            return js({'success' : True ,'message': '200 Ok' , "data" : result}), 200
+    
+            exit()
+        # except:
 
-            usr_conf_dir = os.path.join(USR_CONF_DIR,auth)
-            usr_conf_zip = os.path.join(USR_CONF_DIR,auth,'zip.json')
-
-            json_zip = Zjson()
-            json_zip.connectFile(usr_conf_zip)
-            zip_info = json_zip.read()
-
+            # return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
 
 
-            ziped = False
-            if not os.path.exists(file_path):
-                if os.path.exists(zip_path):
-                    file_path = zip_path
-                    ziped = True
 
-                    if not output in zip_info : 
-                        return js({'success' : True ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
-
-                    file_hash = zip_info[output]['hash']
-
-
-                else:
-                    return js({'success' : True ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
-
-        
-            file_size = get_file_size(file_path)
-            lst_modife =  os.path.getmtime(file_path)
-            if not ziped:
-                file_hash = get_file_hash(file_path)
+        # return {"success" : True , 'data' : data}
 
 
 
 
-            return js({'success' : True ,'message': '200 Ok' , "data" : {"info" : (filename,file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True , 'ziped' : ziped }}), 200
-        except:
-            return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
+
+
+
+
+
+
+
+    if mode == 'get':
+        re = get_public_file(file_name)
+        return re
+
+
+
 
 
     lg = check_auth(username,token=token)
