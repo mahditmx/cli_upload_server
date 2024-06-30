@@ -126,6 +126,7 @@ def get_public_file(file_name,mode='return'):
             return js({'success' : False ,'message': '403 this file is not public' , "data" : {"file_path" : file_name}}), 404
         auth = index_data[file_name]['auth']
         filename = index_data[file_name]['path']
+        lock = 'pass' in index_data[file_name]
 
         dot_index = filename.rfind('.')
         if dot_index != -1:
@@ -181,7 +182,7 @@ def get_public_file(file_name,mode='return'):
         if mode == 'init':
             
             return {"info" : (filename,file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True , 'ziped' : ziped }
-        return js({'success' : True ,'message': '200 Ok' , "data" : {"info" : (filename,file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True , 'ziped' : ziped }}), 200
+        return js({'success' : True ,'message': '200 Ok' , "data" : {"info" : (filename,file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True , 'ziped' : ziped ,'lock': lock}}), 200
     except:
         if mode == 'init':
             return False
@@ -377,6 +378,12 @@ def indexing():
     f_name = data.get('f_name')
     force = data.get('force')
 
+    if "pwd" not in data:
+        pwd = False
+    else:
+        pwd = data.get('pwd')
+
+    print(pwd)
     lg = check_auth(username,token=token)
     if lg != True:
         return lg
@@ -410,6 +417,10 @@ def indexing():
         "path" : file_name,
         "public" : True
     }
+
+    if pwd != False:
+        index[f_name]['pass'] = pwd
+
     try:
         json_index.append(index)
     except:
@@ -757,12 +768,14 @@ def download_file():
 
 @app.route('/api/get', methods=['GET'])
 def get_file():
-
+    
 
     if "filename" not in request.form :
         return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"filename was not send"}}), 400
-
-
+    if "pwd" not in request.form :
+        pwd = False
+    else:
+        pwd = request.form.get('pwd')
     filename = request.form.get('filename')
 
 
@@ -775,6 +788,7 @@ def get_file():
         return js({'success' : False ,'message': '403 this file is not public' , "data" : {"file_path" : filename}}), 404
     auth = index_data[filename]['auth']
     file_name = index_data[filename]['path']
+    lock = 'pass' in index_data[filename]
 
     dot_index = file_name.rfind('.')
     if dot_index != -1:
@@ -784,6 +798,11 @@ def get_file():
     file_path_zip = os.path.join(FILES_DIRECTORY,auth, output)
 
 
+    if lock:
+        if pwd != index_data[filename]['pass']:
+            return js({'success' : False ,'message': '403 password is uncorrect.' , "data" : {"file_path" : filename , 'auth':auth}}), 403
+
+    print(lock ,pwd)
     if os.path.exists(file_path_zip):
         return send_file(file_path_zip, as_attachment=True)
 
@@ -792,6 +811,8 @@ def get_file():
 
     if not os.path.exists(file_path):
         return js({'success' : False ,'message': '404 File not exsist' , "data" : {"file_path" : file_path , 'auth':auth}}), 404
+
+
 
 
     return send_file(file_path, as_attachment=True)
