@@ -197,7 +197,7 @@ def main():
 @app.route('/downloads')
 def downloads():
     return """<h1>Download .deb</h1>Cloud database - Cbase 
-    <br><br> <a href='/download/deb/0.0.5' >cbase-0.0.5.deb</a> for linux 8.2MB 2a1d6becd2b7a600bc7b0c438da6fa09434efd28c2fd4bb2160e2589467d6092   - Last version
+    <br><br> <a href='/download/deb/0.0.5' >cbase-0.0.5.deb</a> for linux 8.18MB 457bfeb216f0c6a0327f2ec7bad38a44076ee730a57f7f528925d3179e630518   - Last version
     <br> <a href='/download/deb/0.0.4' >cbase-0.0.4.deb</a> for linux 8.2MB 62eba599bfe2acfd15987b7b8ca665af1cd5d8082c9b1e44fb33044c32f98adf
     <br> <a href='/download/deb/0.0.3' >cbase-0.0.3.deb</a> for linux 8.2MB 3ec0df369cfd3ae4258a62a06835d325be8b7f24212ed5de9482f99ccca050ba
     <br> <a href='/download/deb/0.0.2' >cbase-0.0.2.deb</a> for linux 8.2MB 8641ef435e65ab9e862200a959595c2a0e6727c9b479a8cbe56389d39cb2d734
@@ -818,9 +818,32 @@ def get_file():
 
     return send_file(file_path, as_attachment=True)
 
+@app.route('/api/logout', methods=['POST'])
+def logout_all():
+
+
+    data = request.json
+    req_data = ['username','token']
+    req = check_req(req_data , data)
+    if req != None:
+        return req
+
+    username = data.get('username')
+    token = data.get('token')
 
 
 
+    token_data = json_usr.read()
+
+    if token_data[username]['token'][0] != token:
+        return js({'success' : False ,'message': '403 you token is uncorrect.' , "data" : {}}), 404
+
+
+    token_data[username]['token'] = ["",0]
+    json_usr.append(token_data)
+
+    return js({'success' : True ,'message': '202 your token now removed.' , "data" : {}}), 404
+ 
 
 
 
