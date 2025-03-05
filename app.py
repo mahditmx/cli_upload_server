@@ -197,7 +197,9 @@ def main():
 @app.route('/downloads')
 def downloads():
     return """<h1>Download .deb</h1>Cloud database - Cbase 
-    <br><br> <a href='/download/deb/0.0.5' >cbase-0.0.5.deb</a> for linux 8.18MB 457bfeb216f0c6a0327f2ec7bad38a44076ee730a57f7f528925d3179e630518   - Last version
+    
+    <br><br> <a href='/download/deb/0.0.6' >cbase-0.0.6.deb</a> for linux 8.7MB 1fdeb9aae635327669a4717a8654270bdd532bedc83458c6f0e188c184e41ae4   - Last version
+    <br> <a href='/download/deb/0.0.5' >cbase-0.0.5.deb</a> for linux 8.18MB 457bfeb216f0c6a0327f2ec7bad38a44076ee730a57f7f528925d3179e630518
     <br> <a href='/download/deb/0.0.4' >cbase-0.0.4.deb</a> for linux 8.2MB 62eba599bfe2acfd15987b7b8ca665af1cd5d8082c9b1e44fb33044c32f98adf
     <br> <a href='/download/deb/0.0.3' >cbase-0.0.3.deb</a> for linux 8.2MB 3ec0df369cfd3ae4258a62a06835d325be8b7f24212ed5de9482f99ccca050ba
     <br> <a href='/download/deb/0.0.2' >cbase-0.0.2.deb</a> for linux 8.2MB 8641ef435e65ab9e862200a959595c2a0e6727c9b479a8cbe56389d39cb2d734
