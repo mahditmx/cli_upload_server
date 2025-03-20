@@ -209,7 +209,10 @@ def downloads():
     <br><br><br>
     
     <h1>Set host url (RECOMMENDED)</h1>                                                                               
-        <pre> <font color="#26A269">$</font> cbase set url https://srv.pythonanywhere.com/api </pre>  
+        <pre> <font color="#26A269">$</font> cbase set url</pre>  
+        <pre> Api url: https://srv.pythonanywhere.com/api</pre> 
+
+
         <h4> Your upload/download set to this host.</h4> 
         <p>*Only version 0.0.6 and later</p>
         <p>*Only not defualt on 0.0.7 version</p>
