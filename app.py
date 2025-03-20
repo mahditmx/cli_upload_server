@@ -847,6 +847,83 @@ def logout_all():
     return js({'success' : True ,'message': '202 your token now removed.' , "data" : {}}), 404
  
 
+@app.route('/api/write_enve', methods=['POST'])
+def write_enve():
+    data = request.json
+    req_data = ['username','token','key','value']
+    req = check_req(req_data , data)
+    if req != None:
+        return req
+
+    username = data.get('username')
+    token = data.get('token')
+    key = data.get('key')
+    value = data.get('value')
+
+    token_data = json_usr.read()
+    if token_data[username]['token'][0] != token:
+        return js({'success' : False ,'message': '403 you token is uncorrect.' , "data" : {}}), 404
+
+
+    # Ensure the directory exists
+    directory_path = os.path.join(FILES_DIRECTORY, username , 'enve')
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
+
+
+    if not key or any(c in key for c in r'<>:"/\|?*'):
+        return js({'success': False, 'message': '400 Invalid key format', "data": {"error": "Key contains invalid characters"}}), 400
+    key_path = os.path.join(directory_path, key)
+    with open(key_path, 'w') as f:
+        f.write(value)
+
+    
+
+
+
+    return js({'success' : True ,'message': 'your enve saved.' , "data" : {}}), 200
+
+
+
+
+@app.route('/api/read_enve', methods=['POST'])
+def read_enve():
+    data = request.json
+    req_data = ['username','token','key']
+    req = check_req(req_data , data)
+    if req != None:
+        return req
+
+    username = data.get('username')
+    token = data.get('token')
+    key = data.get('key')
+
+    token_data = json_usr.read()
+    if token_data[username]['token'][0] != token:
+        return js({'success' : False ,'message': '403 you token is uncorrect.' , "data" : {}}), 404
+
+
+    # Ensure the directory exists
+    directory_path = os.path.join(FILES_DIRECTORY, username , 'enve')
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
+
+
+    if not key or any(c in key for c in r'<>:"/\|?*'):
+        return js({'success': False, 'message': '400 Invalid key format', "data": {"error": "Key contains invalid characters"}}), 400
+    key_path = os.path.join(directory_path, key)
+
+    if not os.path.exists(key_path):
+        return js({'success': False, 'message': '404 Key not found', "data": {"error": "Key does not exist"}}), 404
+
+    with open(key_path, 'r') as f:
+        value = f.read()
+
+    
+
+    return js({'success' : True ,'message': 'your enve saved.' , "data" : {"value":value}}), 200
+
+
 
 
 
