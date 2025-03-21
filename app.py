@@ -8,8 +8,7 @@ from ZDbyte import Zjson
 from flask import Flask, jsonify as js, redirect, request, send_file, session
 from werkzeug.utils import secure_filename
 import magic
-import json
-
+import re
 
 
 
@@ -27,6 +26,9 @@ json_usr.connectFile(THIS_FOLDER / "usr/usr.json")
 json_index = Zjson()
 json_index.connectFile(THIS_FOLDER / "config/index.json")
 
+
+json_enve = Zjson()
+json_enve.connectFile(THIS_FOLDER / "config/enve.json")
 
 FILES_DIRECTORY = THIS_FOLDER / 'files'
 LIB_DIRC = THIS_FOLDER / "lib"
@@ -862,6 +864,75 @@ def logout_all():
     return js({'success' : True ,'message': '202 your token now removed.' , "data" : {}}), 404
  
 
+
+ 
+
+def write_whit_key(key,directory_path,value:str):
+
+    regex = r"(\$)([a-zA-Z0-9]+)(\s)"
+    regex = r"(\$\w+)(?:\[(\d*)?:?(\d*)?\])?" # diffrent whit client regex only 3 group 1: $x 2:first number 3:secned number (2-3 can be empty)
+    matches = re.finditer(regex, value, re.MULTILINE)
+
+    for matchNum, match in enumerate(matches, start=1):
+        
+
+
+        group_len = len(match.groups())
+        snip = False
+        if group_len == 3:
+            snip = True
+            start_num = match.group(2)
+            end_num = match.group(3)
+            if start_num == None and end_num == None:
+                snip = False
+                
+
+
+        group_0 = match.group(0)
+        group_1 = match.group(1)
+
+        file_req = group_1[1:]
+
+
+        if not file_req or any(c in file_req for c in r'<>:"/\|?*'):
+            continue
+        
+        
+        key_path = os.path.join(directory_path, file_req)
+
+        if not os.path.exists(key_path):
+            continue
+
+        with open(key_path, 'r') as f:
+            file_content = f.read()[3:] # pass 3 first char - the file mode code
+
+        if snip:
+            if start_num == "" and end_num == "":
+                file_content = file_content[:]
+
+            elif start_num == "":
+                file_content = file_content[:int(end_num)]
+            elif end_num == "":
+                file_content = file_content[int(start_num):]
+            elif start_num != "" and end_num != "":
+                file_content = file_content[int(start_num):int(end_num)]
+
+            else:
+                raise Exception("Error in regex")
+
+        value = value.replace(group_0,file_content)
+
+
+
+
+
+    if not key or any(c in key for c in r'<>:"/\|?*'):
+        return js({'success': False, 'message': '400 Invalid key format', "data": {"error": "Key contains invalid characters"}}), 400
+    key_path = os.path.join(directory_path, key)
+    with open(key_path, 'w') as f:
+        f.write(value)
+
+
 @app.route('/api/write_enve', methods=['POST'])
 def write_enve():
     data = request.json
@@ -886,20 +957,98 @@ def write_enve():
         os.makedirs(directory_path)
 
 
+
+    possible_command = key.split(" ")[0]
+    if possible_command not in ['pub','rm','prv']:
+        possible_command = False
+
+
+
+
+
+
+
+
+
+
+
+    if possible_command == False:
+        file_code = "000" # 000 mean normal file
+
+        write_whit_key(key ,directory_path, file_code + value)
+        
+
+
+
+        return js({'success' : True ,'message': 'your enve saved.' , "data" : {}}), 200
+
+    else:
+        if possible_command == 'pub':
+            file_code = "001" # 001 mean public file
+        elif possible_command == 'prv':
+            file_code = "002" # 002 mean private file
+        
+
+
+        new_key = " ".join(key.split(" ")[1:])
+        write_whit_key(new_key ,directory_path,file_code + value)
+
+
+
+
+
+        if json_enve.exsist(new_key) == False:
+
+            json_enve.append({
+                new_key : {
+                    "auth" : username,
+                    "code" : file_code,
+                    "pass" : False
+                }
+            })
+
+        else:
+
+            if json_enve.read()[new_key]['auth'] == username:
+                json_enve.append({
+                    new_key : {
+                        "auth" : username,
+                        "code" : file_code,
+                        "pass" : False
+                    }
+                })
+                return js({'success' : True ,'message': 'your enve saved.' , "data" : {}}), 200
+            return js({'success': False, 'message': '400 Invalid key', "data": {"error": "Key allready exsist"}}), 400
+        return js({'success' : True ,'message': 'your enve saved.' , "data" : {}}), 200
+        
+
+
+
+
+
+
+
+
+
+
+
+
+def read_whit_key(key,directory_path):
     if not key or any(c in key for c in r'<>:"/\|?*'):
         return js({'success': False, 'message': '400 Invalid key format', "data": {"error": "Key contains invalid characters"}}), 400
     key_path = os.path.join(directory_path, key)
-    with open(key_path, 'w') as f:
-        f.write(value)
 
-    
+    if not os.path.exists(key_path):
+        return js({'success': False, 'message': '404 Key not found', "data": {"error": "Key does not exist"}}), 404
 
+    with open(key_path, 'r') as f:
+        value = f.read()[3:] # pass 3 frist char - the file mode code
+    return value
 
-
-    return js({'success' : True ,'message': 'your enve saved.' , "data" : {}}), 200
-
-
-
+def read_file(file_path):
+    with open(file_path, 'r') as f:
+        file_mode = f.read()[:3] 
+    return file_mode
 
 @app.route('/api/read_enve', methods=['POST'])
 def read_enve():
@@ -911,7 +1060,7 @@ def read_enve():
 
     username = data.get('username')
     token = data.get('token')
-    key = data.get('key')
+    key:str = data.get('key')
 
     token_data = json_usr.read()
     if token_data[username]['token'][0] != token:
@@ -924,24 +1073,67 @@ def read_enve():
         os.makedirs(directory_path)
 
 
-    if not key or any(c in key for c in r'<>:"/\|?*'):
-        return js({'success': False, 'message': '400 Invalid key format', "data": {"error": "Key contains invalid characters"}}), 400
-    key_path = os.path.join(directory_path, key)
+    possible_command = key.split(" ")[0]
 
-    if not os.path.exists(key_path):
-        return js({'success': False, 'message': '404 Key not found', "data": {"error": "Key does not exist"}}), 404
+    if possible_command not in ['pub','rm','prv','ls']:
+        possible_command = False
 
-    with open(key_path, 'r') as f:
-        value = f.read()
-
-    
-
-    return js({'success' : True ,'message': 'your enve saved.' , "data" : {"value":value}}), 200
+    if possible_command == False:
+        value = read_whit_key(key,directory_path)
+        return js({'success' : True ,'message': 'Read enve successfully.' , "data" : {"value":value}}), 200 
 
 
+    if possible_command == 'pub':
+        key = " ".join(key.split(" ")[1:])
+
+
+        file_code = "001"
+        enve_index_data = json_enve.read()
+        if key not in enve_index_data:
+            return js({'success': False, 'message': '404 Key not found', "data": {"error": "Key does not exist"}}), 404
+        if enve_index_data[key]['code'] != file_code:
+            return js({'success': False, 'message': '403 Invalid key', "data": {"error": "Key is protect by password"}}), 403 # PASSWORD NEED TO REQUEST FROM USER
+        if enve_index_data[key]['code'] == file_code:
+            auth = enve_index_data[key]['auth']
+            directory_path = os.path.join(FILES_DIRECTORY, auth , 'enve')
+            value = read_whit_key(key,directory_path)
+            return js({'success' : True ,'message': 'Read enve successfully.' , "data" : {"value":value}}), 200 
+
+    if possible_command == 'ls':
 
 
 
+        # try:
+        path = directory_path
+        files = list_files(path)
+        result = []
+        for f in files:
+            file_path  = os.path.join(FILES_DIRECTORY,username,'enve',f)
+            file_size = get_file_size(file_path)
+            lst_modife =  os.path.getmtime(file_path)
+            file_hash =  get_file_hash(file_path)
+
+            file_mode = read_file(file_path)[0:3]
+
+            
+
+
+
+
+
+            result.append((f,file_size,lst_modife,file_hash,file_mode))
+
+
+
+
+
+        return js({'success' : True ,'message': 'user command successfully executed'  , "data" : {"value":result}}), 200
+        # except:
+
+        return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
+
+
+        return js({'success' : True ,'message': 'usr command successfully executed' , "data" : {"value":"DATA"}}), 200 
 
 
 if __name__ == '__main__':
