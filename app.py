@@ -4,7 +4,7 @@ from pathlib import Path
 import time
 import secrets
 import string
-from ZDbyte import Zjson
+from ZDbyte import Zjson 
 from flask import Flask, jsonify as js, redirect, request, send_file, session
 from werkzeug.utils import secure_filename
 import magic
@@ -201,7 +201,7 @@ def downloads():
     return """<h1>Download .deb</h1>Cloud database - Cbase 
 
 
-    <br><br> <a href='/download/deb/0.0.8' >cbase-0.0.8.deb</a> for linux 8.7MB e7e765d02814826f0caa46dbb99133af51b4758866c714594d291e9094758012   - Last version
+    <br><br>cbase-0.0.8.deb ( <a href='/download/deb/0.0.8' >Debian</a> | <a href='/download/portable/0.0.8' >Portable</a> ) for linux 8.7MB e7e765d02814826f0caa46dbb99133af51b4758866c714594d291e9094758012   - Last version
     <br> <a href='/download/deb/0.0.7' >cbase-0.0.7.deb</a> for linux 8.7MB b94924e64cfa5c2d5113745f44cadbff27eb2e8c193d521d1ff229164937a826
     <br> <a href='/download/deb/0.0.6' >cbase-0.0.6.deb</a> for linux 8.7MB 1fdeb9aae635327669a4717a8654270bdd532bedc83458c6f0e188c184e41ae4
     <br> <a href='/download/deb/0.0.5' >cbase-0.0.5.deb</a> for linux 8.18MB 457bfeb216f0c6a0327f2ec7bad38a44076ee730a57f7f528925d3179e630518 - (not working)
@@ -248,6 +248,17 @@ def download_deb(ver):
     filepath = LIB_DIRC / 'deb' / ver
     # Change 'filename.ext' to the name you want the downloaded file to have
     filename = f'cbase-{ver}.deb'
+    path = os.path.join(filepath ,filename)
+    # return str(path)
+    return send_file(path, as_attachment=True)
+
+
+@app.route('/download/portable/<ver>')
+def download_portable(ver):
+    # Replace 'path/to/your/file.ext' with the actual path to your file
+    filepath = LIB_DIRC / 'portable' / ver
+    # Change 'filename.ext' to the name you want the downloaded file to have
+    filename = 'cbase'
     path = os.path.join(filepath ,filename)
     # return str(path)
     return send_file(path, as_attachment=True)
@@ -1129,12 +1140,41 @@ def read_enve():
 
 
         return js({'success' : True ,'message': 'user command successfully executed'  , "data" : {"value":result}}), 200
-        # except:
-
-        return js({'success' : False ,'message': '500 Internal server error' , "data" : {}}), 500
 
 
-        return js({'success' : True ,'message': 'usr command successfully executed' , "data" : {"value":"DATA"}}), 200 
+
+    if possible_command == 'rm':
+        ...
+        
+
+        new_key = " ".join(key.split(" ")[1:])
+
+        files_to_remove = new_key.split(',')
+        Log = ""
+        for i in files_to_remove:
+
+
+
+
+            file_path = os.path.join(directory_path,i)
+
+            if os.path.exists(file_path) : 
+
+
+
+
+                os.remove(file_path)
+                Log = Log + f"Enve {new_key} removed successfully\n"
+            else:
+                Log = Log + f"Enve {new_key} not exsit\n"
+
+                
+        return js({'success' : True ,'message': 'user command successfully executed'  , "data" : {"value":f"{Log}"}}), 200
+
+
+
+
+
 
 
 if __name__ == '__main__':
