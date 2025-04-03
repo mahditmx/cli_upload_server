@@ -4,13 +4,4 @@ usr/*
 files/*
 config/*
 usr_config/*
-
-
-
-
-
-
-
-
-
-
+__pycache__

@@ -4,7 +4,7 @@ from pathlib import Path
 import time
 import secrets
 import string
-from ZDbyte import Zjson 
+from ZDbyte import Zjson
 from flask import Flask, jsonify as js, redirect, request, send_file, session
 from werkzeug.utils import secure_filename
 import magic
@@ -51,6 +51,43 @@ app.config.update(
     DEBUG=True,
     HOST='0.0.0.0'
 )
+
+class colors:
+    # Reset
+    reset = "\033[0m"
+
+    # Regular colors
+    black = "\033[30m"
+    red = "\033[31m"
+    green = "\033[32m"
+    yellow = "\033[33m"
+    blue = "\033[34m"
+    magenta = "\033[35m"
+    cyan = "\033[36m"
+    white = "\033[37m"
+
+    # Bold colors
+    bold_black = "\033[1;30m"
+    bold_red = "\033[1;31m"
+    bold_green = "\033[1;32m"
+    bold_yellow = "\033[1;33m"
+    bold_blue = "\033[1;34m"
+    bold_magenta = "\033[1;35m"
+    bold_cyan = "\033[1;36m"
+    bold_white = "\033[1;37m"
+
+    # Background colors
+    bg_black = "\033[40m"
+    bg_red = "\033[41m"
+    bg_green = "\033[42m"
+    bg_yellow = "\033[43m"
+    bg_blue = "\033[44m"
+    bg_magenta = "\033[45m"
+    bg_cyan = "\033[46m"
+    bg_white = "\033[47m"
+
+color = colors()
+
 def list_files(directory):
     files = []
     for filename in os.listdir(directory):
@@ -110,7 +147,7 @@ def get_file_hash(file_path):
 
     # Retrieve the hexadecimal digest of the hash
     file_hash_hexdigest = file_hash.hexdigest()
-    
+
     return file_hash_hexdigest
 def generate_token(length=24):
     """Generate a random token."""
@@ -161,7 +198,7 @@ def get_public_file(file_name,mode='return'):
                 file_path = zip_path
                 ziped = True
 
-                if not output in zip_info : 
+                if not output in zip_info :
                     if mode == 'init':
                         return 404
                     return js({'success' : True ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
@@ -174,7 +211,7 @@ def get_public_file(file_name,mode='return'):
                     return 404
                 return js({'success' : True ,'message': '404 File not exsist' , "data" : {"file_path" : file_name , "exsist" : False}}), 404
 
-    
+
         file_size = get_file_size(file_path)
         lst_modife =  os.path.getmtime(file_path)
         if not ziped:
@@ -182,7 +219,7 @@ def get_public_file(file_name,mode='return'):
 
 
         if mode == 'init':
-            
+
             return {"info" : (filename,file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True , 'ziped' : ziped }
         return js({'success' : True ,'message': '200 Ok' , "data" : {"info" : (filename,file_size,lst_modife,auth),"hash" : file_hash , "exsist" : True , 'ziped' : ziped ,'lock': lock}}), 200
     except:
@@ -198,7 +235,7 @@ def main():
     return redirect('/downloads')
 @app.route('/downloads')
 def downloads():
-    return """<h1>Download .deb</h1>Cloud database - Cbase 
+    return """<h1>Download .deb</h1>Cloud database - Cbase
 
 
     <br><br>cbase-0.0.8.deb ( <a href='/download/deb/0.0.8' >Debian</a> | <a href='/download/portable/0.0.8' >Portable</a> ) for linux 8.7MB e7e765d02814826f0caa46dbb99133af51b4758866c714594d291e9094758012   - Last version
@@ -208,18 +245,18 @@ def downloads():
     <br> <a href='/download/deb/0.0.4' >cbase-0.0.4.deb</a> for linux 8.2MB 62eba599bfe2acfd15987b7b8ca665af1cd5d8082c9b1e44fb33044c32f98adf - (not working)
     <br> <a href='/download/deb/0.0.3' >cbase-0.0.3.deb</a> for linux 8.2MB 3ec0df369cfd3ae4258a62a06835d325be8b7f24212ed5de9482f99ccca050ba - (not working)
     <br> <a href='/download/deb/0.0.2' >cbase-0.0.2.deb</a> for linux 8.2MB 8641ef435e65ab9e862200a959595c2a0e6727c9b479a8cbe56389d39cb2d734 - (not working)
-    
+
     <br><br><br>
-    
-    <h1>Set host url (RECOMMENDED)</h1>                                                                               
-        <pre> <font color="#26A269">$</font> cbase set url</pre>  
-        <pre> Api url: https://srv.pythonanywhere.com/api</pre> 
+
+    <h1>Set host url (RECOMMENDED)</h1>
+        <pre> <font color="#26A269">$</font> cbase set url</pre>
+        <pre> Api url: https://srv.pythonanywhere.com/api</pre>
 
 
-        <h4> Your upload/download set to this host.</h4> 
+        <h4> Your upload/download set to this host.</h4>
         <p>*Only version 0.0.6 and later</p>
         <p>*Only not defualt on 0.0.7 version</p>
-        
+
     <br><br><br>
     <br><br><br>
 
@@ -230,7 +267,7 @@ def downloads():
 
     <br>
     <h3>output</h3>
-<pre><font color="#A347BA">dev@usr</font> <font color="#12488B">~</font>$ <font color="#26A269">cbase</font> get cbase                                                                                         
+<pre><font color="#A347BA">dev@usr</font> <font color="#12488B">~</font>$ <font color="#26A269">cbase</font> get cbase
 geting <font color="#A347BA">cbase</font> info...
 [<font color="#A2734C">ZIP</font>] File ziped on the server
 <font color="#2AA1B3">cbase-0.0.3.deb</font> hash : 3ec0df369cfd3ae4258a62a06835d325be8b7f24212ed5de9482f99ccca050ba
@@ -320,7 +357,7 @@ def check_login():
     usr_conf_dir = os.path.join(USR_CONF_DIR,username)
     usr_conf_zip = os.path.join(USR_CONF_DIR,username,'zip.json')
 
-    if not os.path.exists(usr_conf_dir) : 
+    if not os.path.exists(usr_conf_dir) :
         os.mkdir(usr_conf_dir)
         with open(usr_conf_zip,'w+') as f :
             f.write("{}")
@@ -337,7 +374,7 @@ def check_login():
             return js({'success' : True ,'message': '200 Ok' , "data" : {"username" : username , "token" : usr_info[username]['token'][0]}}), 200
     else:
         usr_token = generate_token(length=32)
-        usr_token_Expiration = time.time() + 7892000 # ~ 3 month 
+        usr_token_Expiration = time.time() + 7892000 # ~ 3 month
         json_usr.append({username : {"password" : password , "time" : time.time() , "admin" : False , 'token' : [usr_token , usr_token_Expiration]}})
 
         return js({'success' : True ,'message': '200 Ok' , "data" : {"username" : username , "token" : usr_token}}), 200
@@ -374,7 +411,7 @@ def rm_file():
     os.remove(file_path)
     if not os.path.exists(file_path):
         return js({'success' : True ,'message': 'File remove successfully' , "data" : {"file_path" : filename }}), 200
-    
+
 
     return js({'success' : False ,'message': '500 Something went wrong' , "data" : {"file_path" : filename }}), 500
 
@@ -422,7 +459,7 @@ def indexing():
 
 
 
-    
+
     file_path  = os.path.join(FILES_DIRECTORY,username,file_name)
 
     dot_index = file_path.rfind('.')
@@ -465,7 +502,7 @@ def indexing():
 
 @app.route('/api/info' , methods=['POST'])
 def file_info():
-    
+
 
     data = request.json
     req_data = ['username','token','file_name','mode']
@@ -494,7 +531,7 @@ def file_info():
 
 
             return js({'success' : True ,'message': '200 Ok' , "data" : result}), 200
-    
+
             exit()
         # except:
 
@@ -525,9 +562,9 @@ def file_info():
     lg = check_auth(username,token=token)
     if lg != True:
         return lg
-    
 
-    if mode == "all" : 
+
+    if mode == "all" :
         try:
             path = os.path.join(FILES_DIRECTORY,username)
             files = list_files(path)
@@ -636,8 +673,8 @@ def file_info():
             if v['orgname'] == sec_file_name:
                 file_size = get_file_size(path)
                 return js({'success' : True ,'message': '200 Ok' , "data" : {"exsist" : True , "size" : file_size , 'hash' : v['hash'] , 'ziped' : True}}), 200
-            
-        
+
+
 
 
 
@@ -734,7 +771,7 @@ def upload_file():
         usr_conf_dir = os.path.join(USR_CONF_DIR,username)
         usr_conf_zip = os.path.join(USR_CONF_DIR,username,'zip.json')
 
-        if not os.path.exists(usr_conf_dir) : 
+        if not os.path.exists(usr_conf_dir) :
             os.mkdir(usr_conf_dir)
             with open(usr_conf_zip,'w+') as f :
                 f.write("{}")
@@ -800,7 +837,7 @@ def download_file():
 
 @app.route('/api/get', methods=['GET'])
 def get_file():
-    
+
 
     if "filename" not in request.form :
         return js({'success' : False ,'message': '400 Invalid data format' , "data" : {"error":f"filename was not send"}}), 400
@@ -874,10 +911,10 @@ def logout_all():
     json_usr.append(token_data)
 
     return js({'success' : True ,'message': '202 your token now removed.' , "data" : {}}), 404
- 
 
 
- 
+
+
 
 def write_whit_key(key,directory_path,value:str):
 
@@ -886,7 +923,7 @@ def write_whit_key(key,directory_path,value:str):
     matches = re.finditer(regex, value, re.MULTILINE)
 
     for matchNum, match in enumerate(matches, start=1):
-        
+
 
 
         group_len = len(match.groups())
@@ -897,7 +934,7 @@ def write_whit_key(key,directory_path,value:str):
             end_num = match.group(3)
             if start_num == None and end_num == None:
                 snip = False
-                
+
 
 
         group_0 = match.group(0)
@@ -908,8 +945,8 @@ def write_whit_key(key,directory_path,value:str):
 
         if not file_req or any(c in file_req for c in r'<>:"/\|?*'):
             continue
-        
-        
+
+
         key_path = os.path.join(directory_path, file_req)
 
         if not os.path.exists(key_path):
@@ -971,7 +1008,7 @@ def write_enve():
 
 
     possible_command = key.split(" ")[0]
-    if possible_command not in ['pub','rm','prv']:
+    if possible_command not in ['pub','rm','prv','norm']:
         possible_command = False
 
 
@@ -988,7 +1025,7 @@ def write_enve():
         file_code = "000" # 000 mean normal file
 
         write_whit_key(key ,directory_path, file_code + value)
-        
+
 
 
 
@@ -999,7 +1036,8 @@ def write_enve():
             file_code = "001" # 001 mean public file
         elif possible_command == 'prv':
             file_code = "002" # 002 mean private file
-        
+        elif possible_command == 'norm':
+            file_code = '000'
 
 
         new_key = " ".join(key.split(" ")[1:])
@@ -1032,7 +1070,7 @@ def write_enve():
                 return js({'success' : True ,'message': 'your enve saved.' , "data" : {}}), 200
             return js({'success': False, 'message': '400 Invalid key', "data": {"error": "Key allready exsist"}}), 400
         return js({'success' : True ,'message': 'your enve saved.' , "data" : {}}), 200
-        
+
 
 
 
@@ -1059,7 +1097,7 @@ def read_whit_key(key,directory_path):
 
 def read_file(file_path):
     with open(file_path, 'r') as f:
-        file_mode = f.read()[:3] 
+        file_mode = f.read()[:3]
     return file_mode
 
 @app.route('/api/read_enve', methods=['POST'])
@@ -1076,7 +1114,8 @@ def read_enve():
 
     token_data = json_usr.read()
     if token_data[username]['token'][0] != token:
-        return js({'success' : False ,'message': '403 you token is uncorrect.' , "data" : {}}), 404
+        return js({'success' : True ,'message': 'Token is unvalid.' , "data" : {"value":f"{color.red}403{color.reset} your token is not valid."}}), 200 # TEMPERORY FIX
+        # return js({'success' : False ,'message': '403 you token is uncorrect.' , "data" : {}}), 403
 
 
     # Ensure the directory exists
@@ -1087,16 +1126,24 @@ def read_enve():
 
     possible_command = key.split(" ")[0]
 
-    if possible_command not in ['pub','rm','prv','ls']:
+    if possible_command not in ['pub','rm','prv','ls','norm']:
         possible_command = False
 
     if possible_command == False:
         value = read_whit_key(key,directory_path)
-        return js({'success' : True ,'message': 'Read enve successfully.' , "data" : {"value":value}}), 200 
+        return js({'success' : True ,'message': 'Read enve successfully.' , "data" : {"value":value}}), 200
+
+    if possible_command:
+        key = " ".join(key.split(" ")[1:])
+
+
+    if possible_command == 'norm':
+        value = read_whit_key(key,directory_path)
+        return js({'success' : True ,'message': 'Read enve successfully.' , "data" : {"value":value}}), 200
 
 
     if possible_command == 'pub':
-        key = " ".join(key.split(" ")[1:])
+        # key = " ".join(key.split(" ")[1:])
 
 
         file_code = "001"
@@ -1109,7 +1156,7 @@ def read_enve():
             auth = enve_index_data[key]['auth']
             directory_path = os.path.join(FILES_DIRECTORY, auth , 'enve')
             value = read_whit_key(key,directory_path)
-            return js({'success' : True ,'message': 'Read enve successfully.' , "data" : {"value":value}}), 200 
+            return js({'success' : True ,'message': 'Read enve successfully.' , "data" : {"value":value}}), 200
 
     if possible_command == 'ls':
 
@@ -1127,7 +1174,7 @@ def read_enve():
 
             file_mode = read_file(file_path)[0:3]
 
-            
+
 
 
 
@@ -1144,13 +1191,25 @@ def read_enve():
 
 
     if possible_command == 'rm':
-        ...
-        
+
 
         new_key = " ".join(key.split(" ")[1:])
+        show_hint = False
+        files_to_remove = []
+        for e in new_key.split(","):
+            files_to_remove.append(e.strip())
 
-        files_to_remove = new_key.split(',')
-        Log = ""
+
+
+        if len(files_to_remove) == 1:
+            # show_hint = True
+            if files_to_remove[0] == "*":
+                show_hint = False
+                files_to_remove = [f for f in os.listdir(directory_path) if os.path.isfile(os.path.join(directory_path, f))]
+
+        Log = f"Removing {color.cyan}{len(files_to_remove)}{color.reset} enve...\n"
+
+
         for i in files_to_remove:
 
 
@@ -1158,17 +1217,23 @@ def read_enve():
 
             file_path = os.path.join(directory_path,i)
 
-            if os.path.exists(file_path) : 
+            if os.path.exists(file_path) :
 
 
 
 
                 os.remove(file_path)
-                Log = Log + f"Enve {new_key} removed successfully\n"
+                Log = Log + f"{color.blue}Enve{color.reset} '{color.cyan}{i}{color.reset}' removed successfully\n"
             else:
-                Log = Log + f"Enve {new_key} not exsit\n"
+                show_hint = True
+                Log = Log + f"{color.red}Enve{color.reset} '{color.cyan}{i}{color.reset}' not exsit\n"
 
-                
+        if show_hint:
+            Log = Log + f"[{color.yellow}Hint{color.reset}] To delete multipe ENVE use ',' like 'rm a, b, c, d'\n"
+            Log = Log + f"[{color.yellow}Hint{color.reset}] To delete all ENVE use '*'"
+
+        else:
+            Log = Log[:-1] # Remove last \n
         return js({'success' : True ,'message': 'user command successfully executed'  , "data" : {"value":f"{Log}"}}), 200
 
 
